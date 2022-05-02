@@ -48,6 +48,7 @@ const Home = (): JSX.Element => {
   );
   const [selectedCards, setSelectedCards] = useState<number[]>([]);
   const [remainingCards, setRemainingCards] = useState<number>(0);
+  const [loading, setLoading] = useState<boolean>(false);
 
   // create deck
   useEffect((): void => {
@@ -66,6 +67,7 @@ const Home = (): JSX.Element => {
   }, [selectedPlayer1Card, selectedPlayer2Card])
 
   const handleRetrieveCards = (): void => {
+    setLoading(true);
     retrieveCards(deck.deck_id, cardsCount)
     .then(res => {
       const {remaining, cards, success} = res.data;
@@ -74,14 +76,25 @@ const Home = (): JSX.Element => {
       setSelectedCards(res.selectedCards);
       setSelectedPlayer1Card(cards[cards.length - 2]);
       setSelectedPlayer2Card(cards[cards.length - 1]);  
+      setLoading(false);
     })
-    .catch(error => alert(error))
+    .catch(error => {
+      alert(error);
+      setLoading(false);
+    })
   }
 
   const handleReshuffleCards = (): void => {
+    setLoading(true);
     reshuffleCards(deck.deck_id)
-    .then(res => handleRetrieveCards())
-    .catch(error => alert(error))
+    .then(res => {
+      handleRetrieveCards();
+      setLoading(false);
+    })
+    .catch(error => {
+      alert(error);
+      setLoading(false);
+    })
   }
 
   const compareCards = (): void => {
@@ -127,7 +140,7 @@ const Home = (): JSX.Element => {
       {remainingCards ? 
       <div className="container">
         <ScoreBoard player1Score={player1.score} player2Score={player2.score}></ScoreBoard>
-        <Button variant="primary" onClick={() => handleRetrieveCards()}>next</Button>
+        <Button disabled={loading} variant="primary" onClick={() => handleRetrieveCards()}>next</Button>
         <CardsHolder selectedPlayer1Card={selectedPlayer1Card} selectedPlayer2Card={selectedPlayer2Card}></CardsHolder>
       </div>
       : selectedCards.length ?
