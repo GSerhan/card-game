@@ -14,21 +14,20 @@ export interface Card {
   code: string,
   image: string,
   images: Images,
-  value: string,
+  value: any,
   suit: string
 }
 
 export interface CardsSetup {
-  data: {
-    success: boolean,
-    deck_id: string,
-    remaining: number,
-    cards: Card[]
-  },
-  selectedCards: number[]
+  success: boolean,
+  deck_id: string,
+  remaining: number,
+  cards: Card[]
 }
 
 export interface Player {
+  name: string,
   score: number,
-  cards: Card[]
+  cards: Card[],
+  selectedCard: Card
 }

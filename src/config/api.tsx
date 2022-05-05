@@ -19,7 +19,8 @@ export const retrieveCards = (playerId: string, count: number): Promise<CardsSet
     fetch(`https://deckofcardsapi.com/api/deck/${playerId}/draw/?count=${count}`)
     .then(response => response.json())
     .then(data => {
-      resolve({data: data, selectedCards: mapCards(data.cards)});
+      mapCards(data.cards);
+      resolve(data);
     })
     .catch(error => {
       reject(error);

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Button, Container, Modal, Navbar } from "react-bootstrap";
 import { createDeck, reshuffleCards, retrieveCards } from "../../config/api";
-import { Card, Deck, Player } from "../../types";
+import { Deck, Player, CardsSetup } from "../../types";
 import ScoreBoard from "../../components/scoreBoard/ScoreBoard";
 import CardsHolder from "../../components/cardsHolder/CardsHolder";
 import "./home.css";
@@ -15,45 +15,49 @@ const Home = (): JSX.Element => {
     shuffled: false
   });
   const [player1, setPlayer1] = useState<Player>({
+    name: "Serhan",
     score: 0,
-    cards: []
+    cards: [],
+    selectedCard: {
+      code: "",
+      image: "",
+      images: {
+        svg: "",
+        png: ""    
+      },
+      value: "",
+      suit: ""
+    }
   });
   const [player2, setPlayer2] = useState<Player>({
+    name: "Roman",
     score: 0,
-    cards: []
+    cards: [],
+    selectedCard: {
+      code: "",
+      image: "",
+      images: {
+        svg: "",
+        png: ""    
+      },
+      value: "",
+      suit: ""
+    }
   });
-  const [selectedPlayer1Card, setSelectedPlayer1Card] = useState<Card>(
-    {
-        code: "",
-        image: "",
-        images: {
-          svg: "",
-          png: ""    
-        },
-        value: "",
-        suit: ""
-      }
-  );
-  const [selectedPlayer2Card, setSelectedPlayer2Card] = useState<Card>(
-    {
-        code: "",
-        image: "",
-        images: {
-          svg: "",
-          png: ""    
-        },
-        value: "",
-        suit: ""
-      }
-  );
-  const [selectedCards, setSelectedCards] = useState<number[]>([]);
-  const [remainingCards, setRemainingCards] = useState<number>(0);
   const [loading, setLoading] = useState<boolean>(false);
 
   // create deck
   useEffect((): void => {
-    createDeck().then((res: Deck) => setDeck(res))
-    .catch(error => alert(error));
+    setLoading(true);
+    createDeck().then((res: Deck) => {
+      if(!res.success) alert("Something went wrong");
+      setDeck(res);
+      setLoading(false);
+    })
+    .catch(error =>  {
+      alert(error);
+      setLoading(false)
+    });
   }, [])
 
   // split cards for players
@@ -63,19 +67,27 @@ const Home = (): JSX.Element => {
 
   // compare cards after split
   useEffect((): void => {
-    if(selectedPlayer1Card.value && selectedPlayer2Card.value) compareCards();
-  }, [selectedPlayer1Card, selectedPlayer2Card])
+    if(player1.selectedCard.value && player1.selectedCard.value) compareCards();
+  }, [player1.selectedCard.value, player1.selectedCard.value])
 
   const handleRetrieveCards = (): void => {
     setLoading(true);
     retrieveCards(deck.deck_id, cardsCount)
-    .then(res => {
-      const {remaining, cards, success} = res.data;
+    .then((res: CardsSetup) => {
+      const {remaining, cards, success} = res;
       if(!success) alert("Something went wrong");
-      setRemainingCards(remaining);
-      setSelectedCards(res.selectedCards);
-      setSelectedPlayer1Card(cards[cards.length - 2]);
-      setSelectedPlayer2Card(cards[cards.length - 1]);  
+      setDeck(previousState => ({
+        ...previousState,
+        remaining
+      }))
+      setPlayer1(prevState => ({
+          ...prevState,
+          selectedCard: cards[cards.length - 2] 
+      }))
+      setPlayer2(prevState => ({
+          ...prevState,
+          selectedCard: cards[cards.length - 1]
+      }))
       setLoading(false);
     })
     .catch(error => {
@@ -87,7 +99,8 @@ const Home = (): JSX.Element => {
   const handleReshuffleCards = (): void => {
     setLoading(true);
     reshuffleCards(deck.deck_id)
-    .then(res => {
+    .then((res: Deck) => {
+      if(!res.success) alert("Something went wrong");
       handleRetrieveCards();
       setLoading(false);
     })
@@ -98,19 +111,27 @@ const Home = (): JSX.Element => {
   }
 
   const compareCards = (): void => {
-    if(selectedCards.length) {
+    if(player1.selectedCard.value && player2.selectedCard.value) {
       // player1 wins
-      if(selectedCards[selectedCards.length - 2] > selectedCards[selectedCards.length - 1]) {
+      if(player1.selectedCard.value > player2.selectedCard.value) {
         const player1CardsClone = [...player1.cards];
-        player1CardsClone.push(selectedPlayer1Card, selectedPlayer2Card);
+        player1CardsClone.push(player1.selectedCard, player2.selectedCard);
         // set score and cards for player1
-        setPlayer1({score: player1.score + 1, cards: player1CardsClone})
+        setPlayer1(previousState => ({
+          ...previousState,
+          score: ++previousState.score,
+          cards: player1CardsClone
+        }))
       // player2 wins
-      } else if (selectedCards[selectedCards.length - 2] < selectedCards[selectedCards.length - 1]) {
+      } else if (player1.selectedCard.value < player2.selectedCard.value) {
         const player2CardsClone = [...player2.cards];
-        player2CardsClone.push(selectedPlayer2Card, selectedPlayer1Card);
+        player2CardsClone.push(player1.selectedCard, player2.selectedCard);
         // set score and cards for player2
-        setPlayer2({score: player2.score + 1, cards: player2CardsClone})
+        setPlayer2(prevState => ({
+          ...prevState,
+          score: ++prevState.score,
+          cards: player2CardsClone
+        }))
       // draw  
       } else {
         handleReshuffleCards();
@@ -120,11 +141,21 @@ const Home = (): JSX.Element => {
 
   const restartGame = (): void => window.location.reload();
 
+  const displayTextForModal = (a: Player, b: Player): string => {
+    if(a.score > b.score) {
+      return a.name + " wins"
+    } else if (a.score < b.score) {
+      return b.name + " wins"
+    } else {
+      return "It's a draw"
+    }
+  }
+
   return (
     <div>
       <Navbar bg="dark" variant="dark" className="mb-5">
         <Container>
-          <Navbar.Brand href="#home">
+          <Navbar.Brand href="https://elbitsystems.com">
             <img
               alt="Elbit Systems"
               src="images/elbit-systems-logo.png"
@@ -134,21 +165,21 @@ const Home = (): JSX.Element => {
             />{' '}
             Elbit Systems
           </Navbar.Brand>
-          <span className="remaining-cards">Remaining cards: {remainingCards}</span>
+          <span className="remaining-cards">Remaining cards: {!loading && deck.remaining}</span>
         </Container>
       </Navbar>
-      {remainingCards ? 
+      {deck.remaining ? 
       <div className="container">
-        <ScoreBoard player1Score={player1.score} player2Score={player2.score}></ScoreBoard>
+        <ScoreBoard player1={player1} player2={player2}></ScoreBoard>
         <Button disabled={loading} variant="primary" onClick={() => handleRetrieveCards()}>next</Button>
-        <CardsHolder selectedPlayer1Card={selectedPlayer1Card} selectedPlayer2Card={selectedPlayer2Card}></CardsHolder>
+        <CardsHolder player1={player1} player2={player2}></CardsHolder>
       </div>
-      : selectedCards.length ?
-      <Modal show={selectedCards.length ? true : false}>
+      : !deck.remaining && !loading ?
+      <Modal show={!deck.remaining && !loading ? true : false}>
         <Modal.Header>
           <Modal.Title>Cards Game</Modal.Title>
         </Modal.Header>
-        <Modal.Body>{player1.score > player2.score ? "Serhan wins" : player1.score < player2.score ? "Roman wins" : "It's a draw"}</Modal.Body>
+        <Modal.Body>{displayTextForModal(player1, player2)}</Modal.Body>
         <Modal.Footer>
           <Button variant="primary" onClick={restartGame}>
             Restart game

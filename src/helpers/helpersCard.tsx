@@ -1,8 +1,8 @@
 import { Card } from "../types";
 
 // map cards to new values for compare
-export const mapCards = (cards: Card[]): number[] => {
-  const newCards: number[] = cards.map(card => {
+export const mapCards = (cards: Card[]): void => {
+  cards.forEach((card: Card, index: number): void => {
     if(card.value === "KING") {
       card.value = "14";
     } else if(card.value === "JACK") {
@@ -12,7 +12,6 @@ export const mapCards = (cards: Card[]): number[] => {
     } else if(card.value === "ACE") {
       card.value = "11";
     }
-    return parseInt(card.value);
+    cards[index].value = parseInt(card.value);
   })
-  return newCards
 }
